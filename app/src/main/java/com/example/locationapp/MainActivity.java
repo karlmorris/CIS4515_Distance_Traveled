@@ -2,6 +2,8 @@ package com.example.locationapp;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -10,7 +12,6 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
@@ -18,9 +19,9 @@ public class MainActivity extends AppCompatActivity {
     LocationManager locationManager;
     LocationListener locationListener;
     Location previousLocation;
-    float distance;
 
     TextView distanceTextView;
+    DistanceViewModel distanceViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,14 +30,26 @@ public class MainActivity extends AppCompatActivity {
 
         distanceTextView = findViewById(R.id.distanceTextView);
 
+        // Fetch ViewModel using "Activity Scope"
+        distanceViewModel = new ViewModelProvider(this).get(DistanceViewModel.class);
+
+        // Set observer on LiveData object stored inside ViewModel (can use lambda)
+        distanceViewModel.getDistance().observe(this, new Observer<Float>() {
+            @Override
+            public void onChanged(Float aFloat) {
+                // Update UI when data in LiveData value changes
+                distanceTextView.setText(String.valueOf(aFloat));
+            }
+        });
+
         locationManager = getSystemService(LocationManager.class);
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
                 if (previousLocation != null) {
-                    distance += location.distanceTo(previousLocation);
-                    distanceTextView.setText(String.valueOf(distance));
-                    Log.d("Distance", String.valueOf(distance));
+                    distanceViewModel.getDistance().setValue(
+                            distanceViewModel.getDistance().getValue() + location.distanceTo(previousLocation)
+                    );
                 }
                 previousLocation = location;
             }
@@ -94,4 +107,5 @@ public class MainActivity extends AppCompatActivity {
             doGPSStuff();
 
     }
+
 }
