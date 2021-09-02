@@ -14,7 +14,15 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.widget.TextView;
 
-public class MainActivity extends AppCompatActivity {
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapView;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
+
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     LocationManager locationManager;
     LocationListener locationListener;
@@ -23,10 +31,19 @@ public class MainActivity extends AppCompatActivity {
     TextView distanceTextView;
     DistanceViewModel distanceViewModel;
 
+    MapView mapView;
+    GoogleMap map;
+    Marker marker;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mapView = findViewById(R.id.mapView);
+        mapView.onCreate(savedInstanceState);
+
+        mapView.getMapAsync(this);
 
         distanceTextView = findViewById(R.id.distanceTextView);
 
@@ -52,6 +69,17 @@ public class MainActivity extends AppCompatActivity {
                     );
                 }
                 previousLocation = location;
+
+                if (map != null) {
+                    LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
+
+                    if (marker == null)
+                        marker = map.addMarker(new MarkerOptions().position(latLng));
+                    else
+                        marker.setPosition(latLng);
+
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 17));
+                }
             }
 
             @Override
@@ -86,12 +114,40 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         doGPSStuff();
+
+        mapView.onStart();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mapView.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mapView.onPause();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         locationManager.removeUpdates(locationListener);
+
+        mapView.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mapView.onDestroy();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        mapView.onSaveInstanceState(outState);
     }
 
     @SuppressLint("MissingPermission")
@@ -108,4 +164,8 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap) {
+        map = googleMap;
+    }
 }
